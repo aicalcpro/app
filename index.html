@@ -1,1 +1,1779 @@
 
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Smart AI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+<style>
+  :root{
+    /* DARK THEME VARIABLES (Default) */
+    --bg: #000000;
+    --text: #ffffff;
+    --muted: #a1a1aa;
+    
+    /* Default Accent */
+    --accent: #ffffff; 
+    --accent-text: #000000;
+    --accent-bg: #ffffff;
+    
+    --card-bg: #121212;
+    --input-bg: #1c1c1c;
+    --btn-bg: #262626;
+    --btn-text: #ffffff;
+    
+    --border: #333333;
+    --shadow: 0 4px 12px rgba(0,0,0,0.5);
+    
+    --modal-bg: rgba(0,0,0,0.85);
+  }
+
+  body[data-theme="light"]{
+    --bg: #f2f2f7;
+    --text: #000000;
+    --muted: #666666;
+    
+    --card-bg: #ffffff;
+    --input-bg: #f2f2f7;
+    --btn-bg: #e5e5ea;
+    --btn-text: #000000;
+    
+    --border: #d1d1d6;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    --modal-bg: rgba(255,255,255,0.85);
+  }
+
+  /* OLED THEME (Pure Black & High Contrast) */
+  body[data-theme="oled"]{
+    --bg: #000000;
+    --text: #ffffff;
+    --muted: #888888;
+    
+    --accent: #ffffff;
+    --accent-text: #000000;
+    --accent-bg: #ffffff;
+    
+    --card-bg: #000000;
+    --input-bg: #000000;
+    --btn-bg: #1a1a1a;
+    --btn-text: #ffffff;
+    
+    /* Lighter border to define edges against black bg */
+    --border: #333333; 
+    --shadow: none;
+    
+    --modal-bg: rgba(0,0,0,0.95);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0; -webkit-tap-highlight-color: transparent;}
+  
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    font-family: "Poppins", system-ui, -apple-system, sans-serif;
+    overflow-x: hidden; 
+  }
+  
+  body{
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  /* KEYBOARD ACCESSIBILITY */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* TOUCH OPTIMIZATION */
+  button, input, select, textarea { touch-action: manipulation; }
+
+  .app{
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 40px; 
+  }
+
+  /* HEADER */
+  header{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand{ display: flex; flex-direction: column; justify-content: center; }
+  h1{ font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+  .subtitle{ font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+  
+  .theme-block{ display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  
+  .pill {
+    height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: 1px solid var(--border);
+    padding: 0 12px;
+    border-radius: 20px;
+    font-size: 0.75rem; 
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+    box-sizing: border-box;
+  }
+  .pill:hover { filter: brightness(1.1); }
+
+  /* CARDS */
+  .card{
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 20px 18px 24px 18px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    transition: background 0.3s ease;
+    position: relative;
+  }
+  
+  .card-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    margin-bottom: 15px;
+  }
+  .title-group { display: flex; flex-direction: column; }
+  .card-title{ font-size: 1rem; font-weight: 600; }
+  .card-sub{ font-size: 0.75rem; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+
+  /* SEARCH BAR */
+  .search-box { position: relative; margin-bottom: 15px; }
+  .search-input {
+    width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+    padding: 12px 12px 12px 40px; 
+    border-radius: 14px; color: var(--text);
+    font-size: 16px; /* iOS Fix */
+    outline: none; transition: 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; border: 2px solid var(--muted); border-radius: 50%;
+  }
+  .search-icon::after {
+    content: ''; position: absolute; right: -4px; bottom: -4px; width: 6px; height: 2px;
+    background: var(--muted); transform: rotate(45deg);
+  }
+
+  /* INPUTS */
+  input, textarea {
+    width: 100%;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px 16px; 
+    border-radius: 14px;
+    font-size: 16px; /* iOS Fix */
+    outline: none;
+    appearance: none; 
+    transition: border 0.2s;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); }
+
+  /* NATIVE SELECT STYLING */
+  select {
+    appearance: none; -webkit-appearance: none;
+    width: 100%; height: 100%;
+    background-color: var(--btn-bg);
+    color: var(--btn-text);
+    border: 1px solid var(--border);
+    padding: 0 30px 0 12px;
+    border-radius: 20px;
+    font-size: 0.8rem; 
+    font-family: inherit;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    transition: 0.2s;
+    outline: none;
+    min-width: 80px;
+    height: 38px;
+  }
+  select:focus { border-color: var(--accent); background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); }
+  
+  /* Select overrides for small headers */
+  .card-header select { height: 32px; font-size: 0.75rem; width: auto; }
+  .theme-block select { height: 32px; font-size: 0.75rem; }
+  
+  /* MODALS */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--modal-bg); z-index: 999;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+  .modal-card {
+    background: var(--card-bg); width: 90%; max-width: 320px;
+    padding: 24px; border-radius: 24px; border: 1px solid var(--border);
+    text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .modal-card select { margin-bottom: 20px; text-align: left; }
+  .info-list { text-align: left; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+  
+  /* ERROR BOX */
+  .error-box {
+    width: 100%;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    margin-top: 25px; 
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+    font-weight: 500;
+  }
+  
+  /* TABS */
+  .tab-bar {
+    display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; 
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  
+  .tab-btn {
+    background: transparent; color: var(--muted); border: none;
+    padding: 8px 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    border-radius: 8px; transition: 0.2s; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--input-bg); }
+  .tab-btn.active { color: var(--accent-text); background: var(--accent-bg); }
+  
+  .tab-content { display: none; animation: fadeIn 0.2s ease; }
+  .tab-content.active { display: block; }
+
+  /* CALCULATOR UI */
+  .sc-switch{
+    position: relative; width: 60px; height: 28px; background: var(--input-bg);
+    border-radius: 20px; cursor: pointer; border: 1px solid var(--border);
+    display: flex; align-items: center; padding: 2px;
+  }
+  .sc-knob{
+    width: 22px; height: 22px; background: var(--text); border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .sc-switch.on .sc-knob{ transform: translateX(30px); background: var(--accent); }
+  .sc-label{ position: absolute; right: 8px; font-size: 0.65rem; font-weight: 600; color: var(--muted); pointer-events: none; }
+
+  .calc-display{
+    background: var(--input-bg); border-radius: 16px; padding: 16px; margin-bottom: 16px; 
+    text-align: right; position: relative; 
+    min-height: 120px; display: flex; flex-direction: column; justify-content: flex-end;
+    overflow: hidden; 
+  }
+  
+  .history-label {
+    position: absolute; top: 12px; left: 16px;
+    font-size: 0.65rem; font-weight: 700; color: var(--accent); 
+    letter-spacing: 1px; text-transform: uppercase; display: none;
+  }
+  .calc-history {
+    position: absolute; top: 28px; left: 16px; width: 85%;
+    max-height: 50px; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    pointer-events: auto; z-index: 10;
+    opacity: 0; transition: opacity 0.2s;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .calc-history::-webkit-scrollbar { display: none; }
+
+  .calc-history.show { opacity: 1; }
+  .hist-item { font-size: 0.8rem; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .hist-item:hover { color: var(--accent); }
+
+  .calc-expression{ font-size: 0.9rem; color: var(--muted); min-height: 20px; word-break: break-all; margin-top: 35px;}
+  .calc-result{ 
+    font-size: 2.2rem; font-weight: 500; color: var(--text); 
+    white-space: nowrap; overflow-x: auto; 
+    scrollbar-width: none; 
+  }
+  .calc-result::-webkit-scrollbar { height:0px; }
+  
+  .calc-grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  .btn{
+    background: var(--btn-bg); color: var(--btn-text); border: none; border-radius: 50px;
+    padding: 12px 0; font-size: 1.1rem; font-weight: 500; cursor: pointer;
+    transition: transform 0.1s, filter 0.2s; display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .btn:active{ transform: scale(0.96); }
+  .btn-accent{ background: var(--accent-bg); color: var(--accent-text); padding: 8px 0; font-size: 1rem; }
+  .small{ font-size: 0.9rem; padding: 10px; }
+  .btn.active-mode { border: 1px solid var(--accent); color: var(--accent); }
+  
+  .btn-action { margin-top: 15px; margin-bottom: 5px; width: 100%; }
+
+  .row{ display: flex; gap: 10px; align-items: center; width: 100%; }
+  .flex-1{ flex: 1; min-width: 0; }
+  .field{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .mini{ font-size: 0.75rem; color: var(--muted); padding-left: 4px;}
+  .result-text{ margin-top: 8px; font-size: 0.95rem; font-weight: 500; line-height: 1.5; position: relative;}
+  .muted-text { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  
+  .chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 5px; }
+  .chip-btn{
+    background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;
+  }
+  .chip-btn.active{ background: var(--accent-bg); color: var(--accent-text); border-color: transparent; font-weight: 600; }
+  .chip-btn.hidden { display: none; }
+
+  /* PANEL LOGIC */
+  .panel{ display: none !important; animation: fadeIn 0.3s ease; }
+  .panel.active{ display: block !important; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
+
+  /* INNER DIVIDER */
+  .divider{ 
+    height: 1px;
+    background: var(--border); 
+    margin: 16px 0 20px 0; 
+    width: 100%;
+    opacity: 0.5;
+  }
+
+  .health-stats, .text-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+  .stat-box { 
+    background: var(--input-bg); border-radius: 12px; padding: 12px; 
+    display: flex; flex-direction: column; align-items: center; text-align: center; 
+    border: 1px solid var(--border); position: relative;
+  }
+  .stat-val { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+  .stat-lbl { font-size: 0.7rem; color: var(--muted); }
+  
+  .info-icon {
+    position: absolute; top: 6px; right: 8px;
+    width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--muted);
+    color: var(--muted); font-size: 9px; line-height: 13px; font-weight: bold;
+    cursor: pointer; opacity: 0.7;
+  }
+  .info-icon:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+
+  .qr-container {
+    margin-top: 0; display: none; flex-direction: column; align-items: center; justify-content: center; padding-top: 15px;
+  }
+  .qr-container.show { display: flex; }
+  .qr-img { border-radius: 8px; border: 4px solid #fff; max-width: 180px; }
+  .loading-txt { font-size: 0.8rem; color: var(--accent); margin-bottom: 10px; }
+  .link-btn { text-decoration: none; font-size: 0.75rem; color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: pointer; }
+  
+  /* Amortization Table Styles */
+  .table-wrapper { 
+    max-height: 250px; overflow-y: auto; margin-top: 15px; 
+    border: 1px solid var(--border); border-radius: 12px; display:none; 
+    scrollbar-width: none; 
+  }
+  .table-wrapper.show { display: block; }
+  .amort-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: right; min-width: 320px; }
+  .amort-table th, .amort-table td { padding: 10px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .amort-table th { text-align: right; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--card-bg); z-index: 2; }
+  .amort-table tr:last-child td { border-bottom: none; }
+  
+  /* UPDATED: Randomizer Styles */
+  .random-big-text { font-size: 2.5rem; font-weight: 700; text-align: center; margin: 25px 0 0 0; line-height: 1; color: var(--accent); }
+  .pop-anim { animation: popIn 0.2s ease forwards; }
+  @keyframes popIn { 0%{transform:scale(0.8);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+
+  /* UPDATED: HERO CARD DESIGN */
+  .hero-box {
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--input-bg);
+      border-radius: 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .hero-val { font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1.1; margin-bottom: 4px; word-break: break-all; }
+  .hero-sub { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+  
+  .hero-details { 
+      border-top: 1px solid var(--border); 
+      margin-top: 12px; padding-top: 12px; 
+      width: 100%; 
+      display: flex; flex-direction: column; gap: 6px;
+  }
+  .detail-row { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--muted); }
+  .detail-row span:last-child { color: var(--text); font-weight: 500; }
+
+  footer{ text-align: center; padding: 20px 0; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 20px; }
+  .heart { display: inline-block; color: var(--accent); animation: heartbeat 1.5s infinite; }
+  @keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.3); } 60% { transform: scale(1); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="currency-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="curr-modal-title">
+  <div class="modal-card">
+    <div id="curr-modal-title" class="card-title" style="margin-bottom:10px; font-size:1.2rem;">Select Currency</div>
+    <div style="margin-bottom:15px; color:var(--muted); font-size:0.9rem;">Choose your preferred currency for all tools.</div>
+    <select id="modal-currency-select">
+      <option value="₹">₹ INR</option><option value="$">$ USD</option><option value="€">€ EUR</option><option value="£">£ GBP</option><option value="¥">¥ JPY</option>
+      <option value="A$">A$ AUD</option><option value="C$">C$ CAD</option><option value="CN¥">CN¥ CNY</option><option value="₣">₣ CHF</option><option value="NZ$">NZ$ NZD</option>
+    </select>
+    <button type="button" id="modal-save-btn" class="btn btn-accent" style="width:100%; margin-top:15px;">Get Started</button>
+    <div style="margin-top:12px; font-size:0.75rem; color:var(--muted);">Change anytime in <b>More Tools</b>.</div>
+  </div>
+</div>
+
+<div id="info-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="info-title">
+  <div class="modal-card">
+    <div id="info-title" class="card-title" style="margin-bottom:10px; font-size:1.1rem;"></div>
+    <div id="info-content" class="info-list" style="color:var(--muted); font-size:0.9rem; text-align:left;"></div>
+    <button type="button" id="info-close-btn" class="btn btn-accent" style="width:100%; margin-top:15px;">Got it</button>
+  </div>
+</div>
+<div class="app">
+  
+  <header>
+    <div class="brand">
+      <h1>Smart AI Calculator</h1>
+      <div class="subtitle">Minimal, fast & versatile.</div>
+    </div>
+    <div class="theme-block">
+      <button type="button" id="toggle-theme" class="pill" aria-label="Toggle Dark Mode">Dark / Light</button>
+      <select id="theme-color" aria-label="Select Theme Color">
+        <option value="mono" selected>Default</option>
+        <option value="oled">OLED</option>
+        <option value="blue">Blue</option><option value="red">Red</option><option value="green">Green</option>
+        <option value="orange">Orange</option><option value="sunset">Sunset</option><option value="ocean">Ocean</option>
+      </select>
+    </div>
+  </header>
+  <main style="display:flex; flex-direction:column; gap:20px;">
+    <section class="card">
+      <div class="card-header">
+        <div class="title-group"><div class="card-title">Calculator</div><div class="card-sub">Scientific Mode & Smart History.</div></div>
+        <div id="sc-switch" class="sc-switch" role="switch" aria-checked="false" aria-label="Scientific Mode"><span class="sc-label">SCI</span><div class="sc-knob"></div></div>
+      </div>
+      <div class="calc-display">
+        <div id="hist-lbl" class="history-label">History</div>
+        <div id="calc-history" class="calc-history"></div>
+        <div id="calc-expression" class="calc-expression"></div>
+        <div id="calc-result" class="calc-result" aria-live="polite">0</div>
+      </div>
+      <div id="calc-grid" class="calc-grid"></div>
+      <div class="calc-grid" style="margin-top:10px">
+        <button type="button" id="calc-clear" class="btn small" style="color:#ef4444" data-key="Escape" aria-label="Clear All">AC</button>
+        <button type="button" id="calc-back" class="btn small" data-key="Backspace" aria-label="Backspace">⌫</button>
+        <button type="button" id="calc-copy" class="btn small" aria-label="Copy Result">Copy</button>
+        <button type="button" id="calc-equals" class="btn btn-accent" data-key="Enter" aria-label="Calculate">=</button>
+      </div>
+      <div id="sci-keys" class="calc-grid" style="margin-top:10px; display:none;">
+        <button type="button" class="btn small" id="deg-toggle" style="font-size:0.8rem">DEG</button>
+        <button type="button" class="btn small" data-fn="sin">sin</button><button type="button" class="btn small" data-fn="cos">cos</button><button type="button" class="btn small" data-fn="tan">tan</button>
+        <button type="button" class="btn small" data-fn="sqrt">√</button><button type="button" class="btn small" data-fn="log">ln</button><button type="button" class="btn small" data-fn="log10">log</button><button type="button" class="btn small" data-fn="pow">xʸ</button><button type="button" class="btn small" data-fn="pi">π</button>
+        <button type="button" class="btn small" data-fn="(">(</button><button type="button" class="btn small" data-fn=")">)</button><button type="button" class="btn small" data-fn="e">e</button><button type="button" class="btn small" data-fn="inv">1/x</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title-group"><div class="card-title">Age Calculator</div><div class="card-sub">Calculate exact age.</div></div></div>
+      <div class="field"><label class="mini">Date of birth</label><input type="date" id="dob-input"></div>
+      <button type="button" id="age-btn" class="btn btn-accent btn-action">Calculate Age</button>
+      <div id="age-result" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title-group"><div class="card-title">Currency Converter</div><div class="card-sub">Real-time rates.</div></div></div>
+      <div class="row">
+        <div class="field flex-1"><label class="mini">Amount</label><input id="cur-amt" type="number" placeholder="1" inputmode="decimal" autocomplete="off"></div>
+        <div class="field flex-1"><label class="mini">From</label><select id="cur-from"><option value="USD" selected>USD</option><option value="EUR">EUR</option><option value="INR">INR</option><option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option><option value="CAD">CAD</option><option value="CNY">CNY</option><option value="CHF">CHF</option><option value="NZD">NZD</option></select></div>
+        <div class="field flex-1"><label class="mini">To</label><select id="cur-to"><option value="INR" selected>INR</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option><option value="CAD">CAD</option><option value="CNY">CNY</option><option value="CHF">CHF</option><option value="NZD">NZD</option></select></div>
+      </div>
+      <div class="row">
+        <button type="button" id="cur-btn" class="btn btn-accent flex-1 btn-action">Convert</button>
+        <button type="button" id="cur-swap" class="btn small" style="width:50px; margin-top:10px;" aria-label="Swap Currencies">⇄</button>
+      </div>
+      <div id="cur-res" aria-live="polite"></div>
+      <div id="cur-source" class="muted-text" style="display:none;"><span id="cur-date"></span> <a href="https://www.frankfurter.app" target="_blank" rel="noopener noreferrer" class="link-btn">Source: Frankfurter API</a></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title-group"><div class="card-title">QR Generator</div><div class="card-sub">Create QR codes.</div></div></div>
+      <div class="field"><label class="mini">Text or URL</label><input id="qr-text" type="text" placeholder="https://example.com" autocomplete="off"></div>
+      <button type="button" id="qr-btn" class="btn btn-accent btn-action">Generate</button>
+      <div id="qr-container" class="qr-container" aria-live="polite">
+        <div id="qr-loading" class="loading-txt">Generating...</div>
+        <img id="qr-image" class="qr-img" alt="QR Code" style="display:none;" />
+        <a id="qr-download" class="link-btn" style="display:none; margin-top:10px;">Download</a>
+      </div>
+    </section>
+    
+    <section class="card">
+      <div class="card-header">
+        <div><div class="card-title">More Tools</div><div class="card-sub">Specialized calculators.</div></div>
+        <select id="global-currency" style="min-width:80px;" aria-label="Global Currency">
+            <option value="₹">₹ INR</option><option value="$">$ USD</option><option value="€">€ EUR</option><option value="£">£ GBP</option><option value="¥">¥ JPY</option>
+            <option value="A$">A$ AUD</option><option value="C$">C$ CAD</option><option value="CN¥">CN¥ CNY</option><option value="₣">₣ CHF</option><option value="NZ$">NZ$ NZD</option>
+        </select>
+      </div>
+
+      <div class="search-box">
+        <div class="search-icon"></div>
+        <input type="text" id="tool-search" class="search-input" placeholder="Search (e.g., GST, Fuel, Calorie)..." aria-label="Search Tools" autocomplete="off">
+      </div>
+
+      <div class="tab-bar" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="tab-tools" role="tab" aria-selected="true">Tools</button>
+        <button type="button" class="tab-btn" data-tab="tab-finance" role="tab" aria-selected="false">Finance</button>
+        <button type="button" class="tab-btn" data-tab="tab-health" role="tab" aria-selected="false">Health</button>
+        <button type="button" class="tab-btn" data-tab="tab-travel" role="tab" aria-selected="false">Travel</button>
+      </div>
+
+      <div id="tab-tools" class="tab-content active" role="tabpanel">
+        <div class="chips">
+          <button type="button" class="chip-btn active" data-panel="unit-panel">Converters</button>
+          <button type="button" class="chip-btn" data-panel="text-panel">Text Tools</button>
+          <button type="button" class="chip-btn" data-panel="time-panel">Day Counter</button>
+          <button type="button" class="chip-btn" data-panel="gpa-panel">GPA</button>
+          <button type="button" class="chip-btn" data-panel="base-panel">Base Analyzer</button>
+          <button type="button" class="chip-btn" data-panel="discount-panel">Percentage</button>
+          <button type="button" class="chip-btn" data-panel="random-panel">Randomizer</button>
+        </div>
+      </div>
+
+      <div id="tab-finance" class="tab-content" role="tabpanel">
+        <div class="chips">
+          <button type="button" class="chip-btn" data-panel="loan-panel">Loan</button>
+          <button type="button" class="chip-btn" id="btn-tax" data-panel="gst-panel">Tax</button> 
+          <button type="button" class="chip-btn" id="btn-invest" data-panel="invest-panel">Invest</button>
+          <button type="button" class="chip-btn" data-panel="fdrd-panel">FD/RD</button> 
+          <button type="button" class="chip-btn" data-panel="goal-panel">Goal Planner</button>
+          <button type="button" class="chip-btn" data-panel="bill-panel">Split Bill</button>
+          <button type="button" class="chip-btn" data-panel="ci-panel">Compound Int.</button>
+        </div>
+      </div>
+
+      <div id="tab-health" class="tab-content" role="tabpanel">
+        <div class="chips">
+          <button type="button" class="chip-btn" data-panel="health-panel">Health Station</button>
+          <button type="button" class="chip-btn" data-panel="calorie-panel">Calories</button> <button type="button" class="chip-btn" data-panel="bodyfat-panel">Body Fat %</button> </div>
+      </div>
+
+      <div id="tab-travel" class="tab-content" role="tabpanel">
+        <div class="chips">
+          <button type="button" class="chip-btn" data-panel="budget-panel">Budget Planner</button> 
+          <button type="button" class="chip-btn" data-panel="fuel-panel">Fuel Cost</button>
+          <button type="button" class="chip-btn" data-panel="eta-panel">Trip ETA</button>
+          <button type="button" class="chip-btn" data-panel="zone-panel">World Time</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div id="unit-panel" class="panel active">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Unit Converter</div></div>
+        <div class="field"><label class="mini">Type</label>
+            <select id="u-type">
+                <option value="length">Length</option>
+                <option value="weight">Weight</option>
+                <option value="temp">Temperature</option>
+                <option value="speed">Speed</option>
+                <option value="area">Area</option>
+                <option value="volume">Volume (Liquid)</option>
+                <option value="time">Time</option>
+                <option value="data">Data Storage</option>
+                <option value="power">Power</option>
+            </select>
+        </div>
+        <div class="row"><div class="field flex-1"><label class="mini">From</label><select id="u-from"></select></div><button type="button" id="u-swap" class="btn small" style="width:40px; margin-top: 18px" aria-label="Swap Units">⇄</button><div class="field flex-1"><label class="mini">To</label><select id="u-to"></select></div></div>
+        <div class="field"><label class="mini">Value</label><input id="u-val" type="number" placeholder="1" inputmode="decimal" autocomplete="off"></div>
+        <button type="button" id="u-btn" class="btn btn-accent btn-action">Convert</button>
+        <div id="u-res" aria-live="polite"></div>
+      </div>
+
+      <div id="text-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Text Analysis</div><div class="card-sub">Analyze and format your text instantly.</div></div>
+        <div class="field"><textarea id="txt-in" rows="4" placeholder="Type or paste..." autocomplete="off"></textarea></div>
+        <div class="text-stats" style="margin-bottom:10px;"><div class="stat-box"><div id="txt-words" class="stat-val">0</div><div class="stat-lbl">Words</div></div><div class="stat-box"><div id="txt-chars" class="stat-val">0</div><div class="stat-lbl">Characters</div></div></div>
+        <div class="row" style="gap:5px;"><button type="button" id="txt-upper" class="btn small flex-1">UPPER</button><button type="button" id="txt-lower" class="btn small flex-1">lower</button><button type="button" id="txt-clear" class="btn small flex-1">Clear</button></div>
+      </div>
+
+      <div id="time-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Day Counter</div><div class="card-sub">Calculate days between dates or find a future date.</div></div>
+        <div class="row"><div class="field flex-1"><label class="mini">Start</label><input id="time-start" type="date"></div><div class="field flex-1"><label class="mini">End</label><input id="time-end" type="date"></div></div>
+        <button type="button" id="time-diff" class="btn btn-accent btn-action">Calculate Days</button>
+        <div id="time-result" class="result-text" aria-live="polite" style="margin-bottom:20px;"></div>
+        <div style="height:1px; background:var(--border); margin:15px 0;"></div>
+        <div class="field"><label class="mini">Start Date</label><input id="date-calc-start" type="date"></div>
+        <div class="field"><label class="mini">Add/Subtract Days (e.g., 45 or -10)</label><input id="date-calc-days" type="number" placeholder="45" inputmode="decimal" autocomplete="off"></div>
+        <button type="button" id="date-calc-btn" class="btn btn-accent btn-action">Find Date</button>
+        <div id="date-calc-res" class="result-text" aria-live="polite"></div>
+      </div>
+
+      <div id="gpa-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">GPA / Average</div><div class="card-sub">Find the average of any set of numbers.</div></div>
+        <div class="field"><label class="mini">Numbers (comma separated)</label><input id="gpa-in" type="text" placeholder="8.5, 9.0, 7.5" autocomplete="off"></div>
+        <button type="button" id="gpa-btn" class="btn btn-accent btn-action">Calculate Average</button>
+        <div id="gpa-res" class="result-text" aria-live="polite"></div>
+      </div>
+
+      <div id="base-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Base Analyzer</div><div class="card-sub">See a number in Decimal, Binary, Hex, and Octal.</div></div>
+        <div class="row"><div class="field flex-1"><label class="mini">Number</label><input id="base-num" type="text" placeholder="10" autocomplete="off"></div><div class="field flex-1"><label class="mini">From Base</label>
+            <select id="base-from">
+                <option value="10">Decimal</option>
+                <option value="2">Binary</option>
+                <option value="16">Hex</option>
+                <option value="8">Octal</option>
+            </select>
+        </div></div>
+        <button type="button" id="base-btn" class="btn btn-accent btn-action">Analyze</button>
+        <div id="base-res" class="result-text" aria-live="polite"></div>
+      </div>
+
+      <div id="discount-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Percentage Calculator</div><div class="card-sub">Get the % value or price after discount.</div></div>
+        <div class="field"><label class="mini">Total Amount</label><input id="perc-total" type="number" placeholder="2000" inputmode="decimal" autocomplete="off"></div>
+        <div class="field"><label class="mini">Percentage %</label><input id="perc-rate" type="number" placeholder="50" inputmode="decimal" autocomplete="off"></div>
+        <button type="button" id="perc-btn" class="btn btn-accent btn-action">Calculate</button>
+        <div id="perc-res" class="result-text" aria-live="polite"></div>
+      </div>
+
+      <div id="random-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Randomizer</div><div class="card-sub">Generate random numbers, pick names, or flip a coin.</div></div>
+        <div class="field"><label class="mini">Mode</label><select id="rnd-mode"><option value="num">Number Generator</option><option value="list">List Picker</option><option value="coin">Coin Flip</option></select></div>
+        <div id="rnd-num-group">
+            <div class="row"><div class="field flex-1"><label class="mini">Min</label><input id="rnd-min" type="number" value="1" inputmode="decimal" autocomplete="off"></div><div class="field flex-1"><label class="mini">Max</label><input id="rnd-max" type="number" value="100" inputmode="decimal" autocomplete="off"></div></div>
+        </div>
+        <div id="rnd-list-group" style="display:none;">
+            <div class="field"><label class="mini">Names (comma separated)</label><textarea id="rnd-list-in" rows="3" placeholder="Alice, Bob, Charlie..." autocomplete="off"></textarea></div>
+        </div>
+        <button type="button" id="rnd-btn" class="btn btn-accent btn-action">Generate</button>
+        <div id="rnd-res" class="random-big-text" aria-live="polite"></div>
+      </div>
+
+      <div id="loan-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Loan / EMI</div><div class="card-sub">See how much you’ll pay every month.</div></div>
+        <div class="field"><label class="mini">Loan Amount</label><input id="emi-principal" type="number" placeholder="100000" inputmode="decimal" autocomplete="off"></div>
+        <div class="row">
+          <div class="field flex-1"><label class="mini">Rate %</label><input id="emi-rate" type="number" step="0.1" placeholder="7.5" inputmode="decimal" autocomplete="off"></div>
+          <div class="field" style="width:80px"><label class="mini">Tenure</label><input id="emi-time" type="number" placeholder="5" inputmode="decimal" autocomplete="off"></div>
+          <div class="field" style="width:100px"><label class="mini">Period</label><select id="emi-unit"><option value="years">Years</option><option value="months">Months</option></select></div>
+        </div>
+        <button type="button" id="emi-calc" class="btn btn-accent btn-action">Calculate EMI</button>
+        <div id="emi-result" aria-live="polite"></div>
+        <div id="emi-extras" style="display:none; margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
+             <button type="button" id="emi-show-table" class="btn small" style="width:100%; margin-bottom:10px;">Show Schedule</button>
+             <div id="amort-container" class="table-wrapper">
+                 <table class="amort-table">
+                     <thead><tr><th>Month</th><th>Principal</th><th>Interest</th><th>EMI</th><th>Balance</th></tr></thead>
+                     <tbody id="amort-body"></tbody>
+                 </table>
+             </div>
+             <button type="button" id="emi-download" class="btn small" style="width:100%; margin-top:10px;">Download CSV (Excel)</button>
+        </div>
+      </div>
+
+      <div id="gst-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title" id="gst-title">GST / VAT</div><div class="card-sub">Find the price before or after tax.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Amount</label><input id="gst-amt" type="number" placeholder="1000" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Tax Rate %</label><input id="gst-rate" type="number" placeholder="18" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="row" style="margin-top:15px; gap:10px;">
+          <button type="button" id="gst-add" class="btn flex-1" style="font-size:0.9rem">After Tax</button>
+          <button type="button" id="gst-rem" class="btn flex-1" style="font-size:0.9rem">Before Tax</button>
+        </div>
+        <div id="gst-res" aria-live="polite"></div>
+      </div>
+
+      <div id="invest-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title" id="sip-title">SIP Calculator</div><div class="card-sub">See how your monthly investment grows over time.</div></div>
+        <div class="field"><label class="mini">Monthly Amount</label><input id="sip-amt" type="number" placeholder="5000" inputmode="decimal" autocomplete="off"></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Rate %</label><input id="sip-rate" type="number" placeholder="12" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Years</label><input id="sip-years" type="number" placeholder="10" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <button type="button" id="sip-btn" class="btn btn-accent btn-action">Calculate Return</button>
+        <div id="sip-res" aria-live="polite"></div>
+      </div>
+
+      <div id="fdrd-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">FD/RD Calculator</div><div class="card-sub">Fixed Deposit / Recurring Deposit</div></div>
+        <div class="field">
+            <label class="mini">Type</label>
+            <select id="fdrd-type"><option value="fd">Fixed Deposit (One time)</option><option value="rd">Recurring Deposit (Monthly)</option></select>
+        </div>
+        <div class="field"><label class="mini">Amount</label><input id="fdrd-amt" type="number" placeholder="100000" inputmode="decimal" autocomplete="off"></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Rate %</label><input id="fdrd-rate" type="number" placeholder="6.5" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Years</label><input id="fdrd-years" type="number" placeholder="5" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <button type="button" id="fdrd-btn" class="btn btn-accent btn-action">Calculate Maturity</button>
+        <div id="fdrd-res" aria-live="polite"></div>
+      </div>
+
+      <div id="goal-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Goal Planner</div><div class="card-sub">Find how much you must invest each month to reach your goal.</div></div>
+        <div class="field"><label class="mini">Target Amount</label><input id="goal-target" type="number" placeholder="10000000" inputmode="decimal" autocomplete="off"></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Years</label><input id="goal-time" type="number" placeholder="10" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Exp. Rate %</label><input id="goal-rate" type="number" placeholder="12" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <button type="button" id="goal-btn" class="btn btn-accent btn-action">Calculate Monthly SIP</button>
+        <div id="goal-res" aria-live="polite"></div>
+      </div>
+
+      <div id="bill-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Bill Splitter</div><div class="card-sub">See how much each person needs to pay.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Total Bill</label><input id="bill-amt" type="number" placeholder="2500" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Tip %</label><input id="bill-tip" type="number" placeholder="10" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="field"><label class="mini">People</label><input id="bill-ppl" type="number" placeholder="4" inputmode="decimal" autocomplete="off"></div>
+        <button type="button" id="bill-btn" class="btn btn-accent btn-action">Split Bill</button>
+        <div id="bill-res" aria-live="polite"></div>
+      </div>
+
+      <div id="ci-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Compound Interest</div><div class="card-sub">See how your money grows over time.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Principal</label><input id="ci-p" type="number" placeholder="10000" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Rate %</label><input id="ci-r" type="number" placeholder="8" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Years</label><input id="ci-t" type="number" placeholder="10" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Compounded</label><select id="ci-n"><option value="1">Yearly</option><option value="4">Quarterly</option><option value="12">Monthly</option></select></div>
+        </div>
+        <button type="button" id="ci-btn" class="btn btn-accent btn-action">Calculate Amount</button>
+        <div id="ci-res" aria-live="polite"></div>
+      </div>
+
+      <div id="health-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Health Station (BMI/BMR)</div><div class="card-sub">Know what your body needs to stay healthy each day.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Age</label><input id="h-age" type="number" placeholder="25" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Gender</label><select id="h-gender"><option value="male">Male</option><option value="female">Female</option></select></div>
+        </div>
+        <div class="row">
+          <div class="field flex-1"><label class="mini">Weight (kg)</label><input id="h-weight" type="number" placeholder="70" inputmode="decimal" autocomplete="off"></div>
+          <div class="field flex-1"><label class="mini">Height (cm)</label><input id="h-height" type="number" placeholder="170" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="field">
+          <label class="mini">Activity Level</label>
+          <select id="h-activity">
+            <option value="1.2">Sedentary (Little/No exercise)</option><option value="1.375">Light</option><option value="1.55">Moderate</option><option value="1.725">Active</option><option value="1.9">Very Active</option>
+          </select>
+        </div>
+        <button type="button" id="h-btn" class="btn btn-accent btn-action">Calculate Stats</button>
+        <div id="h-result" class="health-stats" style="display:none;" aria-live="polite">
+          <div class="stat-box"><div class="info-icon" id="bmi-info" aria-label="BMI Info" role="button" tabindex="0">i</div><div id="res-bmi" class="stat-val">--</div><div class="stat-lbl">BMI Score</div></div>
+          <div class="stat-box"><div id="res-bmr" class="stat-val">--</div><div class="stat-lbl">BMR (Cal/Day)</div></div>
+          <div class="stat-box"><div id="res-water" class="stat-val">--</div><div class="stat-lbl">Water (L)</div></div>
+          <div class="stat-box"><div id="res-protein" class="stat-val">--</div><div class="stat-lbl">Protein (g)</div></div>
+        </div>
+        <div id="h-msg" class="result-text" style="text-align:center;"></div>
+      </div>
+
+      <div id="calorie-panel" class="panel">
+         <div class="title-group" style="margin-bottom:10px"><div class="card-title">Calorie Needs</div><div class="card-sub">Daily calorie goals for weight management.</div></div>
+         <div class="row">
+            <div class="field flex-1"><label class="mini">Age</label><input id="cal-age" type="number" placeholder="25" inputmode="decimal" autocomplete="off"></div>
+            <div class="field flex-1"><label class="mini">Gender</label><select id="cal-gender"><option value="male">Male</option><option value="female">Female</option></select></div>
+         </div>
+         <div class="row">
+            <div class="field flex-1"><label class="mini">Weight (kg)</label><input id="cal-weight" type="number" placeholder="70" inputmode="decimal" autocomplete="off"></div>
+            <div class="field flex-1"><label class="mini">Height (cm)</label><input id="cal-height" type="number" placeholder="170" inputmode="decimal" autocomplete="off"></div>
+         </div>
+         <div class="field"><label class="mini">Activity</label><select id="cal-act"><option value="1.2">Sedentary</option><option value="1.375">Light Activity</option><option value="1.55">Moderate Activity</option><option value="1.725">Very Active</option></select></div>
+         <button type="button" id="cal-btn" class="btn btn-accent btn-action">Calculate</button>
+         <div id="cal-res" aria-live="polite"></div>
+      </div>
+
+      <div id="bodyfat-panel" class="panel">
+         <div class="title-group" style="margin-bottom:10px"><div class="card-title">Body Fat %</div><div class="card-sub">US Navy Method.</div></div>
+         <div class="field"><label class="mini">Gender</label><select id="bf-gender"><option value="male">Male</option><option value="female">Female</option></select></div>
+         <div class="row">
+             <div class="field flex-1"><label class="mini">Height (cm)</label><input id="bf-height" type="number" placeholder="175" inputmode="decimal" autocomplete="off"></div>
+             <div class="field flex-1"><label class="mini">Neck (cm)</label><input id="bf-neck" type="number" placeholder="38" inputmode="decimal" autocomplete="off"></div>
+         </div>
+         <div class="field"><label class="mini">Waist (at navel) (cm)</label><input id="bf-waist" type="number" placeholder="85" inputmode="decimal" autocomplete="off"></div>
+         <div id="bf-hip-group" class="field" style="display:none;"><label class="mini">Hip (at widest) (cm)</label><input id="bf-hip" type="number" placeholder="95" inputmode="decimal" autocomplete="off"></div>
+         <button type="button" id="bf-btn" class="btn btn-accent btn-action">Calculate Body Fat</button>
+         <div id="bf-res" aria-live="polite"></div>
+      </div>
+
+      <div id="fuel-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Fuel Cost Calculator</div><div class="card-sub">See how much fuel you’ll need and what it will cost.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Distance (km)</label><input id="fuel-dist" type="number" placeholder="300" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Mileage (km/l)</label><input id="fuel-mil" type="number" placeholder="15" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="field"><label class="mini">Fuel Price</label><input id="fuel-price" type="number" placeholder="100" inputmode="decimal" autocomplete="off"></div>
+        <button type="button" id="fuel-btn" class="btn btn-accent btn-action">Calculate Cost</button>
+        <div id="fuel-res" aria-live="polite"></div>
+      </div>
+
+      <div id="eta-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">Trip ETA</div><div class="card-sub">Find out when you’ll reach your destination.</div></div>
+        <div class="row">
+           <div class="field flex-1"><label class="mini">Distance (km)</label><input id="eta-dist" type="number" placeholder="200" inputmode="decimal" autocomplete="off"></div>
+           <div class="field flex-1"><label class="mini">Speed (km/h)</label><input id="eta-speed" type="number" placeholder="60" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <div class="field"><label class="mini">Start Time</label><input id="eta-start" type="time"></div>
+        <button type="button" id="eta-btn" class="btn btn-accent btn-action">Calculate Arrival</button>
+        <div id="eta-res" aria-live="polite"></div>
+      </div>
+
+      <div id="budget-panel" class="panel">
+         <div class="title-group" style="margin-bottom:10px"><div class="card-title">Travel Budget Planner</div><div class="card-sub">Estimate your total trip cost.</div></div>
+         <div class="row"><div class="field flex-1"><label class="mini">Hotel</label><input id="bud-hotel" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div><div class="field flex-1"><label class="mini">Travel</label><input id="bud-travel" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div></div>
+         <div class="row"><div class="field flex-1"><label class="mini">Food</label><input id="bud-food" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div><div class="field flex-1"><label class="mini">Activity</label><input id="bud-act" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div></div>
+         <div class="row"><div class="field flex-1"><label class="mini">Shopping</label><input id="bud-shop" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div><div class="field flex-1"><label class="mini">Misc</label><input id="bud-misc" type="number" placeholder="0" inputmode="decimal" autocomplete="off"></div></div>
+         <div class="field"><label class="mini">Total Persons</label><input id="bud-ppl" type="number" placeholder="1" inputmode="decimal" autocomplete="off"></div>
+         <button type="button" id="bud-btn" class="btn btn-accent btn-action">Calculate Budget</button>
+         <div id="bud-res" aria-live="polite"></div>
+      </div>
+
+      <div id="zone-panel" class="panel">
+        <div class="title-group" style="margin-bottom:10px"><div class="card-title">World Time</div><div class="card-sub">See the current time across regions.</div></div>
+        <div class="field"><label class="mini">Select Region</label>
+          <select id="zone-sel">
+            <option value="Asia/Kolkata">🇮🇳 India (IST)</option>
+            <option value="America/New_York">🇺🇸 New York (EST)</option>
+            <option value="Europe/London">🇬🇧 London (GMT)</option>
+            <option value="Asia/Dubai">🇦🇪 Dubai (GST)</option>
+            <option value="Asia/Tokyo">🇯🇵 Tokyo (JST)</option>
+            <option value="Australia/Sydney">🇦🇺 Sydney (AEDT)</option>
+            <option value="America/Los_Angeles">🇺🇸 Los Angeles (PST)</option>
+            <option value="Europe/Paris">🇫🇷 Paris (CET)</option>
+          </select>
+        </div>
+        <button type="button" id="zone-btn" class="btn btn-accent btn-action">Get Time</button>
+        <div id="zone-res" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    Made With <span class="heart">❤️</span> By Avinash Gupta!
+  </footer>
+</div>
+</body>
+<script>
+  const $ = id => document.getElementById(id);
+  
+  // ==========================================
+  //  REGION 1: GLOBAL CONFIG & UTILS
+  // ==========================================
+  let expr = ''; 
+  let useDeg = true; 
+  let history = []; 
+  let globalSym = '₹'; 
+  
+  // Calculator State
+  let calcResultDisplayed = false;
+  let lastResult = ''; 
+
+  // Tool Formatter
+  const formatNum = (num) => {
+      if(Math.abs(num) < 1e-6 && num !== 0) return num.toExponential(4);
+      let clean = parseFloat(num.toFixed(10)); 
+      if (String(clean).split('.')[1]?.length > 4) return parseFloat(clean.toFixed(4));
+      return clean;
+  };
+  
+  // Currency Formatter
+  const formatCurrencyAmount = (num) => {
+      const locale = globalSym === '₹' ? 'en-IN' : 'en-US';
+      return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(num);
+  };
+
+  const pad = (n) => n.toString().padStart(2, '0');
+
+  // HERO HELPER
+  const renderHero = (mainVal, mainLabel, details = []) => {
+      let detailsHTML = '';
+      if(details.length > 0) {
+          detailsHTML = `<div class="hero-details">` + 
+              details.map(d => `<div class="detail-row"><span>${d.lbl}</span><span>${d.val}</span></div>`).join('') + 
+          `</div>`;
+      }
+      return `
+        <div class="hero-box">
+            <div class="hero-val">${mainVal}</div>
+            <div class="hero-sub">${mainLabel}</div>
+            ${detailsHTML}
+        </div>
+      `;
+  };
+
+  // ERROR HELPER
+  const renderError = (msg) => `<div class="error-box">${msg}</div>`;
+
+  // ==========================================
+  //  REGION 2: THEME ENGINE (CLEANED)
+  // ==========================================
+  function updateThemeColors(themeName) {
+    const root = document.documentElement; 
+    
+    // Standard Themes
+    const themes = {
+        blue:   { bg: '#3b82f6', solid: '#3b82f6' },
+        red:    { bg: '#ef4444', solid: '#ef4444' },
+        green:  { bg: '#22c55e', solid: '#22c55e' },
+        orange: { bg: '#f97316', solid: '#f97316' },
+        sunset: { bg: 'linear-gradient(135deg, #f97316, #ef4444)', solid: '#ef4444' },
+        ocean:  { bg: 'linear-gradient(135deg, #06b6d4, #3b82f6)', solid: '#3b82f6' }
+    };
+    
+    // OLED Theme Logic
+    if (themeName === 'oled') {
+        // OLED is mostly handled by CSS data-theme="oled"
+        // We just ensure the accent text matches the white vibe
+        root.style.setProperty('--accent-text', '#ffffff');
+    } 
+    // Default / Mono Theme Logic
+    else if (themeName === 'mono') {
+       const isLight = document.body.dataset.theme === 'light';
+       const acc = isLight ? '#000000' : '#ffffff';
+       const txt = isLight ? '#ffffff' : '#000000';
+       root.style.setProperty('--accent-bg', acc);
+       root.style.setProperty('--accent', acc);
+       root.style.setProperty('--accent-text', txt);
+    } 
+    // Colored Themes
+    else {
+       const t = themes[themeName] || themes.blue;
+       root.style.setProperty('--accent-bg', t.bg);
+       root.style.setProperty('--accent', t.solid);
+       root.style.setProperty('--accent-text', '#ffffff');
+    }
+  }
+  
+  $('toggle-theme').onclick = () => { 
+      const current = document.body.dataset.theme;
+      // If currently OLED, switching toggle goes to Light mode
+      if (current === 'oled') document.body.dataset.theme = 'light';
+      else document.body.dataset.theme = current === 'light' ? 'dark' : 'light';
+      
+      // If user toggles theme while on OLED, reset dropdown to Default to avoid confusion
+      if($('theme-color').value === 'oled') {
+           $('theme-color').value = 'mono';
+           updateThemeColors('mono');
+      } else {
+           updateThemeColors($('theme-color').value);
+      }
+      localStorage.setItem('smartcalc_v1_theme_mode', document.body.dataset.theme);
+  };
+
+  $('theme-color').onchange = (e) => {
+      const val = e.target.value;
+      if(val === 'oled') {
+          document.body.dataset.theme = 'oled';
+      } else {
+          // If moving away from OLED, restore previous preference (or default to dark)
+          const saved = localStorage.getItem('smartcalc_v1_theme_mode');
+          document.body.dataset.theme = (saved === 'light') ? 'light' : 'dark';
+      }
+      updateThemeColors(val);
+      localStorage.setItem('smartcalc_v1_theme_color', val);
+  };
+
+  // ==========================================
+  //  REGION 3: NAVIGATION & ACCESSIBILITY
+  // ==========================================
+  
+  function trapFocus(modal) {
+    const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if(focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    modal.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    });
+  }
+
+  trapFocus($('info-modal'));
+  trapFocus($('currency-modal'));
+  
+  function showInfoModal(title, content) {
+      $('info-title').textContent = title;
+      $('info-content').innerHTML = content;
+      const modal = $('info-modal');
+      modal.classList.add('show');
+      $('info-close-btn').focus();
+  }
+  
+  const closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+  
+  $('info-close-btn').onclick = closeModals;
+  document.querySelectorAll('.modal-overlay').forEach(m => m.onclick = (e) => { if(e.target===m) closeModals(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModals(); });
+
+  const switchTab = (tabId) => {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', b.dataset.tab === tabId);
+          if(b.dataset.tab === tabId) b.classList.add('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      $(tabId).classList.add('active');
+      localStorage.setItem('smartcalc_v1_last_tab', tabId); 
+  };
+
+  const switchPanel = (panelId, btn) => {
+      const parent = btn.parentElement;
+      parent.querySelectorAll('.chip-btn').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); 
+      $(panelId).classList.add('active');
+      localStorage.setItem('smartcalc_v1_last_panel', panelId); 
+  };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+          switchTab(btn.dataset.tab);
+          const content = $(btn.dataset.tab);
+          const firstChip = content.querySelector('.chip-btn');
+          if (firstChip) firstChip.click();
+      }
+  });
+
+  document.querySelectorAll('.chip-btn').forEach(b => {
+      b.onclick = () => switchPanel(b.dataset.panel, b);
+  });
+
+  $('tool-search').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const chips = document.querySelectorAll('.chip-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const tabBar = document.querySelector('.tab-bar');
+    
+    if (term.length > 0) {
+      tabContents.forEach(c => c.style.display = 'block');
+      tabBar.style.display = 'none';
+      chips.forEach(chip => {
+        const label = chip.textContent.toLowerCase();
+        if (label.includes(term) || chip.dataset.panel.includes(term)) chip.classList.remove('hidden');
+        else chip.classList.add('hidden');
+      });
+    } else {
+      tabContents.forEach(c => c.style.display = '');
+      tabBar.style.display = 'flex';
+      chips.forEach(c => c.classList.remove('hidden'));
+      const activeTabId = document.querySelector('.tab-btn.active').dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      $(activeTabId).classList.add('active');
+    }
+  });
+
+  $('bf-gender').addEventListener('change', function() {
+      $('bf-hip-group').style.display = this.value === 'female' ? 'block' : 'none';
+  });
+  
+  $('rnd-mode').addEventListener('change', function() {
+      const mode = this.value;
+      $('rnd-num-group').style.display = mode === 'num' ? 'block' : 'none';
+      $('rnd-list-group').style.display = mode === 'list' ? 'block' : 'none';
+      $('rnd-res').textContent = mode === 'coin' ? 'Flip me!' : '';
+  });
+
+  // ==========================================
+  //  REGION 4: CALCULATOR ENGINE
+  // ==========================================
+  
+  const upd = () => {
+      let displayExpr = expr.replace(/\*/g, '×').replace(/\//g, '÷').replace(/pi/g, 'π'); 
+      $('calc-expression').textContent = displayExpr;
+  };
+
+  const handleCalcInput = (key) => {
+      if ($('calc-result').textContent === 'Cannot divide by 0' || $('calc-result').textContent === 'Error') {
+         expr = '';
+         $('calc-result').textContent = '0';
+         $('calc-result').style.fontSize = ''; 
+         calcResultDisplayed = false; 
+      }
+
+      if (expr.length > 120) return;
+
+      if (calcResultDisplayed) {
+          if ("+-*/^%".includes(key)) {
+              expr = String(lastResult) + key; 
+          } else if ("0123456789.".includes(key) || key === '(' || key === 'pi' || key === 'e' || key.length > 1) {
+              expr = key; 
+          }
+          calcResultDisplayed = false;
+      } else {
+          expr += key;
+      }
+      upd();
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const card = e.target.closest('.card, .panel');
+            if(card) { const actionBtn = card.querySelector('.btn-action'); if(actionBtn) actionBtn.click(); }
+        }
+        return;
+    }
+    
+    const key = e.key;
+    if ("0123456789.+-*/%()^".includes(key)) {
+      e.preventDefault();
+      const map = {'*':'×', '/':'÷', '-': '−'};
+      handleCalcInput({'×':'*', '÷':'/', '−':'-'}[map[key]] || key); 
+    }
+    else if (key === 'Enter') { e.preventDefault(); $('calc-equals').click(); }
+    else if (key === 'Backspace') { e.preventDefault(); $('calc-back').click(); }
+    else if (key === 'Escape') { e.preventDefault(); $('calc-clear').click(); }
+  });
+
+  const updateHistory = (expression, result) => {
+    history.push({ expr: expression, result: result });
+    if (history.length > 3) history.shift(); 
+    
+    const tape = $('calc-history');
+    tape.innerHTML = history.map(h => `<div class="hist-item">${h.expr} = ${h.result}</div>`).join('');
+    tape.classList.add('show'); $('hist-lbl').style.display = 'block'; 
+    tape.scrollTop = tape.scrollHeight;
+    
+    tape.querySelectorAll('.hist-item').forEach((item, index) => { 
+      item.onclick = () => { 
+          expr = history[index].expr; 
+          calcResultDisplayed = false; 
+          upd(); 
+      }; 
+    });
+  };
+  
+  const k = ['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','%','+'];
+  k.forEach(x => { 
+    let b = document.createElement('button'); b.className = 'btn'; b.textContent = x; 
+    b.onclick = () => handleCalcInput({'÷':'/','×':'*','−':'-'}[x] || x);
+    $('calc-grid').appendChild(b); 
+  });
+
+  const degBtn = $('deg-toggle');
+  degBtn.onclick = () => { useDeg = !useDeg; degBtn.textContent = useDeg ? "DEG" : "RAD"; degBtn.classList.toggle('active-mode', useDeg); };
+  degBtn.classList.add('active-mode');
+
+  $('sc-switch').onclick = function() { 
+    this.classList.toggle('on'); this.setAttribute('aria-checked', this.classList.contains('on'));
+    $('sci-keys').style.display = this.classList.contains('on') ? 'grid' : 'none'; 
+  };
+
+  document.querySelectorAll('#sci-keys .btn:not(#deg-toggle)').forEach(b => {
+    b.onclick = () => { 
+      const fn = b.dataset.fn; 
+      let add = '';
+      if (fn === 'pi') add = 'pi'; else if (fn === 'e') add = 'e'; else if (fn === 'pow') add = '^'; else if (fn === 'inv') add = '1/'; else if (fn === 'sqrt') add = 'sqrt('; else if (fn === '(' || fn === ')') add = fn; else add = `${fn}(`; 
+      handleCalcInput(add);
+    };
+  });
+
+  $('calc-back').onclick = () => { 
+      if (calcResultDisplayed) {
+          calcResultDisplayed = false;
+          $('calc-result').style.fontSize = ''; 
+          upd();
+          return;
+      }
+      
+      if (expr.endsWith('pi')) expr = expr.slice(0, -2);
+      else if (expr.endsWith('sqrt(')) expr = expr.slice(0, -5);
+      else if (
+        expr.endsWith('sin(') ||
+        expr.endsWith('cos(') ||
+        expr.endsWith('tan(')
+      ) expr = expr.slice(0, -4);
+      else expr = expr.slice(0, -1);
+      
+      upd(); 
+  };
+
+  $('calc-copy').onclick = () => { 
+      navigator.clipboard.writeText(String(lastResult)); 
+      const originalText = $('calc-copy').textContent; 
+      $('calc-copy').textContent = "Copied!"; 
+      setTimeout(() => $('calc-copy').textContent = originalText, 1000); 
+  };
+
+  $('calc-clear').onclick = () => { 
+      if (expr === '' && $('calc-result').textContent === '0') { 
+          history = []; $('calc-history').innerHTML = ''; $('hist-lbl').style.display = 'none'; 
+      } else { 
+          expr = ''; upd(); $('calc-result').textContent = '0'; 
+          $('calc-result').style.fontSize = ''; 
+          calcResultDisplayed = false; 
+      } 
+  };
+
+  $('calc-equals').onclick = () => { 
+    try { 
+      if (!expr.trim()) return;
+      let s = expr;
+      
+      s = s.replace(/(.+?)([+\-])\s*([0-9.]+)%$/, (_, base, op, perc) => {
+        return `(${base}) ${op} ((${base}) * (${perc} / 100))`;
+      });
+      
+      s = s.replace(/([*/])\s*([0-9.]+)%/g, (_, op, num) => {
+        return `${op}(${num}/100)`;
+      });
+
+      s = s.replace(/(^|[^\d)])\s*([0-9.]+)%/g, (_, prefix, num) => {
+        return `${prefix}(${num}/100)`;
+      });
+
+      const openCount = (s.match(/\(/g) || []).length; const closeCount = (s.match(/\)/g) || []).length;
+      if (openCount > closeCount) s += ')'.repeat(openCount - closeCount);
+      
+      let scope = {};
+      if(useDeg) { scope.sin = x => math.sin(math.unit(x, 'deg')); scope.cos = x => math.cos(math.unit(x, 'deg')); scope.tan = x => math.tan(math.unit(x, 'deg')); }
+      
+      const rawResult = math.evaluate(s, scope);
+      const numericResult = Number(math.format(rawResult, {precision: 10})); 
+      
+      if (!isFinite(numericResult)) {
+        $('calc-result').textContent = 'Cannot divide by 0';
+        $('calc-result').style.fontSize = '1.2rem';
+        expr = '';
+        calcResultDisplayed = true;
+        return;
+      }
+
+      if (!isNaN(numericResult)) { 
+          updateHistory(expr, numericResult); 
+          $('calc-result').textContent = formatNum(numericResult); 
+          $('calc-result').style.fontSize = ''; 
+          lastResult = numericResult; 
+          calcResultDisplayed = true; 
+      } else { throw new Error("NaN Result"); }
+    } catch (e) { 
+        $('calc-result').textContent = "Error"; 
+        $('calc-result').style.fontSize = '';
+        expr = ''; 
+        calcResultDisplayed = true; 
+    } 
+  };
+  // ==========================================
+  //  REGION 5: TOOLS LOGIC
+  // ==========================================
+
+  // 1. FD/RD Calculator
+  $('fdrd-btn').onclick = () => {
+    const type = $('fdrd-type').value;
+    const P = parseFloat($('fdrd-amt').value), R = parseFloat($('fdrd-rate').value), T = parseFloat($('fdrd-years').value);
+    if(!P || !R || !T) { $('fdrd-res').innerHTML = renderError("Please fill all fields."); return; }
+    let matVal = 0, invVal = 0;
+    if(type === 'fd'){ invVal = P; matVal = P * Math.pow((1 + (R/400)), 4*T); } 
+    else { const months = T * 12; invVal = P * months; let i = R / 1200; matVal = P * ( (Math.pow(1+i, months) - 1) / i ) * (1+i); }
+    const maturityDate = new Date(); maturityDate.setFullYear(maturityDate.getFullYear() + T);
+    
+    $('fdrd-res').innerHTML = renderHero(
+        `${globalSym}${formatCurrencyAmount(Math.round(matVal))}`,
+        "Maturity Value",
+        [
+            {lbl: "Invested", val: `${globalSym}${formatCurrencyAmount(Math.round(invVal))}`},
+            {lbl: "Interest", val: `${globalSym}${formatCurrencyAmount(Math.round(matVal - invVal))}`},
+            {lbl: "Maturity Date", val: maturityDate.toLocaleDateString()}
+        ]
+    );
+  };
+
+  // 2. Calorie
+  $('cal-btn').onclick = () => {
+     const age = parseFloat($('cal-age').value), w = parseFloat($('cal-weight').value), h = parseFloat($('cal-height').value), act = parseFloat($('cal-act').value);
+     const gender = $('cal-gender').value;
+     if(!age || !w || !h) { $('cal-res').innerHTML = renderError("Please fill all fields."); return; }
+     let bmr = (10 * w) + (6.25 * h) - (5 * age); bmr = (gender === 'male') ? bmr + 5 : bmr - 161;
+     const tdee = Math.round(bmr * act);
+     
+     $('cal-res').innerHTML = renderHero(
+         `${tdee} cal/day`, "Maintenance",
+         [{lbl: "Lose 0.25kg/w", val: `${tdee - 275} cal`}, {lbl: "Lose 1kg/w", val: `${tdee - 1100} cal`}]
+     );
+  };
+
+  // 3. Body Fat
+  $('bf-btn').onclick = () => {
+     const gender = $('bf-gender').value;
+     const h = parseFloat($('bf-height').value), neck = parseFloat($('bf-neck').value), waist = parseFloat($('bf-waist').value), hip = parseFloat($('bf-hip').value);
+     if(!h || !neck || !waist || (gender === 'female' && !hip)) { $('bf-res').innerHTML = renderError("Please fill all fields."); return; }
+     let bf = 0;
+     if(gender === 'male') { if(waist - neck <= 0) { $('bf-res').innerHTML = renderError("Waist > Neck req."); return; } bf = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(h)) - 450; } 
+     else { if(waist + hip - neck <= 0) { $('bf-res').innerHTML = renderError("Check measurements."); return; } bf = 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.22100 * Math.log10(h)) - 450; }
+     $('bf-res').innerHTML = renderHero(`${bf.toFixed(1)}%`, "Body Fat");
+  };
+
+  // 4. Trip Budget
+  $('bud-btn').onclick = () => {
+      const hotel = parseFloat($('bud-hotel').value)||0, travel = parseFloat($('bud-travel').value)||0, food = parseFloat($('bud-food').value)||0;
+      const act = parseFloat($('bud-act').value)||0, shop = parseFloat($('bud-shop').value)||0, misc = parseFloat($('bud-misc').value)||0;
+      const ppl = parseFloat($('bud-ppl').value)||1;
+      const total = hotel + travel + food + act + shop + misc; const perPerson = total / ppl;
+      $('bud-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(total)}`, "Total Budget", [{lbl: "Cost Per Person", val: `${globalSym}${formatCurrencyAmount(Math.round(perPerson))}`}]);
+  };
+
+  // 5. Health Station
+  $('h-btn').onclick = () => {
+    const age = parseFloat($('h-age').value), w = parseFloat($('h-weight').value), h = parseFloat($('h-height').value), act = parseFloat($('h-activity').value), gender = $('h-gender').value;
+    if (!age || !w || !h) { $('h-msg').innerHTML = renderError("Please fill all fields."); return; }
+    const bmi = (w/((h/100)*(h/100))).toFixed(1);
+    let bmr = (10*w) + (6.25*h) - (5*age); bmr = (gender === 'male' ? bmr + 5 : bmr - 161);
+    const tdee = Math.round(bmr * act);
+    $('h-result').style.display = 'grid';
+    $('res-bmi').textContent = bmi; $('res-bmr').textContent = tdee; $('res-water').textContent = (w/30).toFixed(1); $('res-protein').textContent = Math.round(w * (0.8 + (act - 1.2)));
+    $('h-msg').textContent = `Status: ${ bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy" : bmi < 30 ? "Overweight" : "Obese" }`;
+  };
+  
+  $('bmi-info').onclick = (e) => { e.stopPropagation(); showInfoModal("BMI Categories", "• <b>< 18.5:</b> Underweight<br>• <b>18.5 - 24.9:</b> Normal<br>• <b>25 - 29.9:</b> Overweight<br>• <b>30+:</b> Obese"); };
+  $('bmi-info').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('bmi-info').click(); } };
+
+  // 6. EMI + Amortization
+  $('emi-calc').onclick = () => {
+    const p = parseFloat($('emi-principal').value), r = parseFloat($('emi-rate').value), t = parseFloat($('emi-time').value), u = $('emi-unit').value;
+    if (!p || !t) { $('emi-result').innerHTML = renderError("Please fill fields."); return; } 
+    
+    let emi, total;
+    const n = u === 'years' ? t * 12 : t;
+    const monthlyRate = r / 1200;
+
+    if (r === 0) { emi = p / n; total = p; } 
+    else { emi = (p * monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1); total = emi * n; }
+    
+    $('emi-result').innerHTML = renderHero(
+        `${globalSym}${formatCurrencyAmount(Math.round(emi))}`,
+        "Monthly EMI",
+        [
+            {lbl: "Total Interest", val: `${globalSym}${formatCurrencyAmount(Math.round(total - p))}`},
+            {lbl: "Total Amount", val: `${globalSym}${formatCurrencyAmount(Math.round(total))}`}
+        ]
+    );
+    
+    $('emi-extras').style.display = 'block';
+    
+    const generateSchedule = () => {
+        let balance = p;
+        let data = [];
+        for(let i=1; i<=n; i++) {
+            let interest = 0;
+            if(r > 0) interest = balance * monthlyRate;
+            const principal = emi - interest;
+            balance -= principal;
+            if(balance < 0) balance = 0;
+            data.push({ month: i, p: principal, i: interest, e: emi, b: balance });
+        }
+        return data;
+    };
+    
+    const schedule = generateSchedule();
+    
+    $('emi-show-table').onclick = () => {
+        const tbody = $('amort-body'); tbody.innerHTML = '';
+        schedule.forEach(row => {
+            tbody.innerHTML += `<tr>
+                <td>${row.month}</td>
+                <td>${globalSym}${formatCurrencyAmount(Math.round(row.p))}</td>
+                <td>${globalSym}${formatCurrencyAmount(Math.round(row.i))}</td>
+                <td>${globalSym}${formatCurrencyAmount(Math.round(row.e))}</td>
+                <td>${globalSym}${formatCurrencyAmount(Math.round(row.b))}</td>
+            </tr>`;
+        });
+        $('amort-container').classList.toggle('show');
+        $('emi-show-table').textContent = $('amort-container').classList.contains('show') ? "Hide Schedule" : "Show Schedule";
+    };
+    
+    $('emi-download').onclick = () => {
+        let csvContent = "data:text/csv;charset=utf-8,Month,Principal,Interest,EMI,Balance\n";
+        schedule.forEach(row => { csvContent += `${row.month},${row.p.toFixed(2)},${row.i.toFixed(2)},${row.e.toFixed(2)},${row.b.toFixed(2)}\n`; });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "loan_schedule.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+  };
+
+  // 7. GST (UPDATED: Friendly Names)
+  const calcGST = (mode) => {
+    const amt = parseFloat($('gst-amt').value), rate = parseFloat($('gst-rate').value);
+    if (!amt || !rate) { $('gst-res').innerHTML = renderError("Please fill fields."); return; }
+    let net, gst, total; 
+    
+    // mode 'add' -> User clicked "After Tax" (Calculate final price)
+    if (mode === 'add') { 
+        gst = (amt * rate) / 100; total = amt + gst; net = amt; 
+        $('gst-res').innerHTML = renderHero(
+            `${globalSym}${formatCurrencyAmount(total)}`,
+            "Price After Tax",
+            [
+                {lbl: "Original Price", val: `${globalSym}${formatCurrencyAmount(net)}`},
+                {lbl: `Tax Added (${rate}%)`, val: `${globalSym}${formatCurrencyAmount(gst)}`}
+            ]
+        );
+    } 
+    // mode 'remove' -> User clicked "Before Tax" (Reverse calculate)
+    else { 
+        net = amt / (1 + rate/100); gst = amt - net; total = amt; 
+        $('gst-res').innerHTML = renderHero(
+            `${globalSym}${formatCurrencyAmount(net)}`,
+            "Price Before Tax",
+            [
+                {lbl: "Current Price", val: `${globalSym}${formatCurrencyAmount(total)}`},
+                {lbl: `Tax Included (${rate}%)`, val: `${globalSym}${formatCurrencyAmount(gst)}`}
+            ]
+        );
+    }
+  };
+  $('gst-add').onclick = () => calcGST('add'); $('gst-rem').onclick = () => calcGST('remove');
+
+  // 8. SIP
+  $('sip-btn').onclick = () => {
+     const p = parseFloat($('sip-amt').value), r = parseFloat($('sip-rate').value), y = parseFloat($('sip-years').value);
+     if (!p || !r || !y) { $('sip-res').innerHTML = renderError("Please fill fields."); return; }
+     const i = r / 1200, n = y * 12;
+     const val = Math.round(p * ((Math.pow(1 + i, n) - 1) / i) * (1 + i));
+     $('sip-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(val)}`, "Total Value", [{lbl: "Invested", val: `${globalSym}${formatCurrencyAmount(p * n)}`}, {lbl: "Profit", val: `${globalSym}${formatCurrencyAmount(val - (p * n))}`}]);
+  };
+
+  // 9. Goal Planner
+  $('goal-btn').onclick = () => {
+    const target = parseFloat($('goal-target').value), t = parseFloat($('goal-time').value), r = parseFloat($('goal-rate').value);
+    if (!target || !t || !r) { $('goal-res').innerHTML = renderError("Please fill fields."); return; }
+    const i = r/1200, n = t*12;
+    const res = Math.round(target / (((Math.pow(1+i,n)-1)/i)*(1+i)));
+    $('goal-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(res)}/mo`, "SIP Needed");
+  };
+  
+  // 10. Percentage
+  $('perc-btn').onclick = () => {
+    const total = parseFloat($('perc-total').value), rate = parseFloat($('perc-rate').value);
+    if (!total || !rate) { $('perc-res').innerHTML = renderError("Please fill fields."); return; }
+    const value = (total * rate) / 100; const off = total - value;
+    $('perc-res').innerHTML = renderHero(
+        `${globalSym}${formatCurrencyAmount(parseFloat(off.toFixed(2)))}`, 
+        "Result (Total - %)", 
+        [{lbl: `${rate}% Of ${total}`, val: `${globalSym}${formatCurrencyAmount(parseFloat(value.toFixed(2)))}`}]
+    );
+  };
+  
+  // 11. Bill Split
+  $('bill-btn').onclick = () => {
+    const amt = parseFloat($('bill-amt').value), tip = parseFloat($('bill-tip').value)||0, ppl = parseFloat($('bill-ppl').value)||1;
+    if (!amt) return;
+    const total = amt + (amt*tip/100); 
+    $('bill-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(Math.round(total/ppl))}`, "Per Person", [{lbl: "Total Bill", val: `${globalSym}${formatCurrencyAmount(Math.round(total))}`}]);
+  };
+  
+  // 12. Compound Interest
+  $('ci-btn').onclick = () => {
+    const p = parseFloat($('ci-p').value), r = parseFloat($('ci-r').value), t = parseFloat($('ci-t').value), n = parseFloat($('ci-n').value);
+    if (!p || !r || !t) return;
+    const amt = Math.round(p * Math.pow((1 + (r/100)/n),(n*t))); 
+    $('ci-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(amt)}`, "Total Amount", [{lbl: "Interest", val: `${globalSym}${formatCurrencyAmount(amt-p)}`}]);
+  };
+
+  // 13. Fuel Cost
+  $('fuel-btn').onclick = () => {
+    const d = parseFloat($('fuel-dist').value), m = parseFloat($('fuel-mil').value), p = parseFloat($('fuel-price').value);
+    if (!d || !m || !p) return;
+    const cost = Math.round((d/m)*p);
+    $('fuel-res').innerHTML = renderHero(`${globalSym}${formatCurrencyAmount(cost)}`, "Total Cost", [{lbl: "Fuel Needed", val: `${formatNum(d/m)} L`}]);
+  };
+  
+  // 14. ETA
+  $('eta-btn').onclick = () => {
+      const d = parseFloat($('eta-dist').value), s = parseFloat($('eta-speed').value), start = $('eta-start').value;
+      if (!d || !s || !start) return;
+      const now = new Date(); const [h, m] = start.split(':'); now.setHours(h); now.setMinutes(m);
+      now.setMinutes(now.getMinutes() + ((d/s)*60));
+      $('eta-res').innerHTML = renderHero(now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}), "Arrival Time");
+  };
+  
+  // 15. Age Calc
+  $('age-btn').onclick = () => {
+    const dVal = $('dob-input').value; if(!dVal) return;
+    const parts = dVal.split('-');
+    const d = new Date(parts[0], parts[1]-1, parts[2]);
+    const t = new Date();
+    if(d > t) { $('age-result').innerHTML = renderError("Date is in the future!"); return; }
+    let y = t.getFullYear()-d.getFullYear(), m = t.getMonth()-d.getMonth(), days = t.getDate()-d.getDate();
+    if(days<0){ m--; days+=new Date(t.getFullYear(),t.getMonth(),0).getDate(); } if(m<0){ y--; m+=12; }
+    $('age-result').innerHTML = renderHero(`${y} Y, ${m} M, ${days} D`, "Exact Age");
+  };
+  
+  // 16. Currency API
+  $('cur-btn').onclick = async () => {
+    const a = parseFloat($('cur-amt').value);
+    if (isNaN(a) || a <= 0) { $('cur-res').innerHTML = renderError("Please enter valid amount"); return; }
+    const f = $('cur-from').value, t = $('cur-to').value;
+    $('cur-res').textContent = "Loading..."; $('cur-source').style.display = 'none';
+    const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 5000); 
+    try { 
+      const r = await fetch(`https://api.frankfurter.app/latest?amount=${a}&from=${f}&to=${t}`, { signal: controller.signal }); 
+      clearTimeout(timeoutId);
+      if(!r.ok) throw new Error();
+      const d = await r.json();
+      $('cur-res').innerHTML = renderHero(`${formatNum(d.rates[t])} ${t}`, `${a} ${f}`, [{lbl: "Last Updated", val: d.date}]);
+      $('cur-source').style.display = 'block'; 
+    } catch (err) { 
+        $('cur-res').innerHTML = renderError("API server down. Please try again later."); 
+    }
+  };
+  $('cur-swap').onclick = () => { const f=$('cur-from'), t=$('cur-to'), tmp=f.value; f.value=t.value; t.value=tmp; f.dispatchEvent(new Event('change')); t.dispatchEvent(new Event('change')); };
+  
+  // 17. World Time
+  $('zone-btn').onclick = () => { 
+      const timeStr = new Date().toLocaleTimeString('en-US',{timeZone:$('zone-sel').value,hour:'2-digit',minute:'2-digit',hour12:true});
+      const dateStr = new Date().toLocaleDateString('en-US',{timeZone:$('zone-sel').value,weekday:'short', month:'short', day:'numeric'});
+      $('zone-res').innerHTML = renderHero(timeStr, "Current Time", [{lbl: "Date", val: dateStr}]);
+  };
+  
+  // 18. QR Gen
+  $('qr-btn').onclick = () => { 
+    const txt = $('qr-text').value; if (!txt) return; 
+    $('qr-container').classList.add('show'); $('qr-image').style.display = 'none'; $('qr-loading').style.display = 'block'; 
+    
+    const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(txt)}`;
+    
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+          const objectURL = URL.createObjectURL(blob);
+          const img = $('qr-image');
+          img.onload = () => { 
+              $('qr-loading').style.display = 'none'; 
+              img.style.display = 'block'; 
+              const dwn = $('qr-download');
+              dwn.href = objectURL;
+              dwn.download = "qr.png";
+              dwn.style.display = "inline-block";
+          };
+          img.src = objectURL;
+      });
+  };
+
+  // 19. Unit Converter
+  const uData = {
+    length: { 
+        map: { 'm':'Meter (m)', 'cm':'Centimeter (cm)', 'ft':'Feet (ft)', 'in':'Inches (in)' },
+        fn: (v,f,t) => { let m=v; if(f=='cm')m=v/100; if(f=='ft')m=v/3.2808; if(f=='in')m=v/39.37; if(t=='m')return m; if(t=='cm')return m*100; if(t=='ft')return m*3.2808; if(t=='in')return m*39.37; } 
+    },
+    weight: {
+        map: { 'kg':'Kilogram (kg)', 'lb':'Pound (lb)', 'g':'Gram (g)', 'mg':'Milligram (mg)', 'oz':'Ounce (oz)', 't':'Tonne (t)', 'q':'Quintal (q)' },
+        fn: (v,f,t) => { const toG = { kg:1000, lb:453.59237, g:1, mg:0.001, oz:28.34952, t:1000000, q:100000 }; return (v * toG[f]) / toG[t]; }
+    },
+    temp: { 
+        map: { 'C':'Celsius (°C)', 'F':'Fahrenheit (°F)', 'K':'Kelvin (K)' },
+        fn: (v,f,t) => {
+            if(f===t) return v;
+            let k;
+            if(f === 'C') k = v + 273.15;
+            else if(f === 'F') k = (v - 32) * 5/9 + 273.15;
+            else k = v;
+            if(t === 'C') return k - 273.15;
+            if(t === 'F') return (k - 273.15) * 9/5 + 32;
+            return k;
+        } 
+    },
+    speed: { 
+        map: { 'kmph':'Km/h', 'mph':'Miles/h' },
+        fn: (v,f,t) => f===t?v:(f==='kmph'?v*0.6213:v/0.6213) 
+    },
+    power: {
+        map: { 'W':'Watt (W)', 'kW':'Kilowatt (kW)', 'hp':'Horsepower (hp)', 'mW':'Milliwatt (mW)' },
+        fn: (v,f,t) => { const toW = { W:1, kW:1000, hp:745.7, mW:0.001 }; return (v * toW[f]) / toW[t]; }
+    },
+    area: {
+        map: { 'm2':'Sq Meter (m²)', 'ft2':'Sq Feet (ft²)', 'ac':'Acre (ac)', 'ha':'Hectare (ha)' },
+        fn: (v,f,t) => { const toM2 = { 'm2':1, 'ft2':0.092903, 'ac':4046.86, 'ha':10000 }; return (v * toM2[f]) / toM2[t]; }
+    },
+    volume: {
+        map: { 'l':'Litre (L)', 'ml':'Milliliter (ml)', 'gal':'US Gallon (gal)', 'cup':'Cup', 'tbsp':'Tablespoon', 'tsp':'Teaspoon' },
+        fn: (v,f,t) => { const toL = { l:1, ml:0.001, gal:3.78541, cup:0.236588, tbsp:0.014787, tsp:0.004929 }; return (v * toL[f]) / toL[t]; }
+    },
+    time: {
+        map: { 's':'Second (s)', 'min':'Minute (min)', 'hr':'Hour (hr)', 'd':'Day (d)', 'wk':'Week (wk)', 'yr':'Year (yr)', 'ms':'Millisecond (ms)' },
+        fn: (v,f,t) => { const toS = { s:1, min:60, hr:3600, d:86400, wk:604800, yr:31536000, ms:0.001 }; return (v * toS[f]) / toS[t]; }
+    },
+    data: {
+        map: { 'B':'Byte (B)', 'KB':'Kilobyte (KB)', 'MB':'Megabyte (MB)', 'GB':'Gigabyte (GB)', 'TB':'Terabyte (TB)' },
+        fn: (v,f,t) => { const p = { B:0, KB:1, MB:2, GB:3, TB:4 }; return v * Math.pow(1024, p[f] - p[t]); }
+    }
+  };
+
+  function renderUnits(){ 
+    const t = $('u-type').value, d = uData[t], f = $('u-from'), to = $('u-to');
+    $('u-res').textContent = '';
+    f.innerHTML = ''; to.innerHTML = ''; 
+    Object.keys(d.map).forEach(k => { 
+        f.add(new Option(d.map[k], k)); 
+        to.add(new Option(d.map[k], k)); 
+    }); 
+    if(to.options.length>1) to.selectedIndex = 1; 
+  }
+  
+  $('u-type').onchange = renderUnits; 
+  $('u-swap').onclick = () => { const f=$('u-from'), t=$('u-to'), tmp=f.value; f.value=t.value; t.value=tmp; f.dispatchEvent(new Event('change')); t.dispatchEvent(new Event('change')); };
+  
+  $('u-btn').onclick = () => { 
+      const v = parseFloat($('u-val').value); if(isNaN(v)) return;
+      const type = $('u-type').value, f = $('u-from').value, t = $('u-to').value;
+      const converted = uData[type].fn(v, f, t);
+      const unitName = uData[type].map[t].split('(')[0].trim();
+      if (typeof converted === 'number' && !isNaN(converted)) { 
+          $('u-res').innerHTML = renderHero(formatNum(converted), unitName);
+      } 
+  };
+
+  // 20. Other Text & Math Tools
+  $('time-diff').onclick = () => { 
+    const startVal = $('time-start').value, endVal = $('time-end').value; if (!startVal || !endVal) return;
+    const d1 = new Date(startVal), d2 = new Date(endVal);
+    $('time-result').innerHTML = renderHero(`${Math.ceil(Math.abs(d2-d1)/8.64e7)} days`, "Difference");
+  };
+  $('date-calc-btn').onclick = () => {
+      const startVal = $('date-calc-start').value, days = parseInt($('date-calc-days').value);
+      if(!startVal || isNaN(days)) return;
+      const parts = startVal.split('-');
+      const d = new Date(parts[0], parts[1]-1, parts[2]);
+      d.setDate(d.getDate() + days);
+      $('date-calc-res').innerHTML = renderHero(d.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'}), "Result Date");
+  };
+
+  // BASE ANALYZER
+  $('base-btn').onclick = () => { 
+      const v = $('base-num').value.trim();
+      const from = parseInt($('base-from').value);
+      
+      let isValid = false;
+      if (from === 2) isValid = /^[0-1]+$/.test(v);
+      else if (from === 8) isValid = /^[0-7]+$/.test(v);
+      else if (from === 10) isValid = /^[0-9]+$/.test(v);
+      else if (from === 16) isValid = /^[0-9A-Fa-f]+$/.test(v);
+      
+      if (!isValid) {
+          let msg = "Invalid Input";
+          if (from === 2) msg = "Digits 0-1 only allowed";
+          else if (from === 8) msg = "Digits 0-7 only allowed";
+          else if (from === 10) msg = "Digits 0-9 only allowed";
+          else if (from === 16) msg = "Hex chars 0-9, A-F only";
+          $('base-res').innerHTML = renderError(msg);
+          return;
+      }
+
+      try { 
+          const d = parseInt(v, from); 
+          if(isNaN(d)) throw Error; 
+          $('base-res').innerHTML = renderHero(d, "Decimal", [{lbl: "Binary", val: d.toString(2)}, {lbl: "Octal", val: d.toString(8)}, {lbl: "Hex", val: d.toString(16).toUpperCase()}]);
+      } catch { $('base-res').innerHTML = renderError("Invalid Input"); } 
+  };
+  
+  // GPA
+  $('gpa-btn').onclick = () => { 
+      const n=$('gpa-in').value.split(',').map(Number).filter(x=>!isNaN(x)); 
+      const avg = n.length ? (n.reduce((a,b)=>a+b,0)/n.length).toFixed(2) : 0;
+      $('gpa-res').innerHTML = renderHero(avg, "GPA / Average");
+  };
+  
+  const txtStats = () => { const v = $('txt-in').value; $('txt-chars').textContent = v.length; $('txt-words').textContent = v.trim().split(/\s+/).filter(w=>w.length>0).length; };
+  $('txt-in').oninput = txtStats; $('txt-upper').onclick = () => { $('txt-in').value = $('txt-in').value.toUpperCase(); txtStats(); }; $('txt-lower').onclick = () => { $('txt-in').value = $('txt-in').value.toLowerCase(); txtStats(); }; $('txt-clear').onclick = () => { $('txt-in').value = ''; txtStats(); };
+
+  // Randomizer Logic
+  $('rnd-btn').onclick = () => {
+      const mode = $('rnd-mode').value;
+      const resBox = $('rnd-res');
+      
+      resBox.classList.remove('pop-anim');
+      setTimeout(() => resBox.classList.add('pop-anim'), 10);
+      
+      if(mode === 'num') {
+          const min = parseInt($('rnd-min').value), max = parseInt($('rnd-max').value);
+          if(min >= max) { resBox.innerHTML = renderError("Invalid Range"); return; }
+          resBox.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
+      } else if (mode === 'list') {
+          const txt = $('rnd-list-in').value;
+          const items = txt.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          if(items.length === 0) { resBox.innerHTML = renderError("Enter names"); return; }
+          resBox.textContent = items[Math.floor(Math.random() * items.length)];
+      } else if (mode === 'coin') {
+          resBox.textContent = Math.random() < 0.5 ? "HEADS" : "TAILS";
+      }
+  };
+
+  // ==========================================
+  //  REGION 6: INIT & RESTORE STATE
+  // ==========================================
+  
+  function setGlobalCurrency(sym) {
+      globalSym = sym;
+      localStorage.setItem('smartcalc_v1_currency', sym);
+      
+      const globalSel = $('global-currency');
+      const modalSel = $('modal-currency-select');
+      if(globalSel) globalSel.value = sym;
+      if(modalSel) modalSel.value = sym;
+      
+      const taxBtn = $('btn-tax'), invBtn = $('btn-invest'), gstTitle = $('gst-title'), sipTitle = $('sip-title');
+      if (['₹', 'A$', 'C$', 'NZ$', 'CN¥'].includes(sym)) { taxBtn.textContent = "GST"; gstTitle.textContent = "GST Calculator"; } 
+      else if (['€', '£'].includes(sym)) { taxBtn.textContent = "VAT"; gstTitle.textContent = "VAT Calculator"; } 
+      else { taxBtn.textContent = "Tax"; gstTitle.textContent = "Tax Calculator"; }
+
+      if (sym === '₹') { invBtn.textContent = "SIP"; sipTitle.textContent = "SIP Calculator"; } 
+      else { invBtn.textContent = "Invest"; sipTitle.textContent = "Investment Calc"; }
+  }
+
+  const savedCurr = localStorage.getItem('smartcalc_v1_currency');
+  if (savedCurr) setGlobalCurrency(savedCurr);
+  else setTimeout(() => { $('currency-modal').classList.add('show'); $('modal-currency-select').focus(); }, 500);
+  
+  $('global-currency').onchange = (e) => setGlobalCurrency(e.target.value);
+  $('modal-save-btn').onclick = () => { setGlobalCurrency($('modal-currency-select').value); $('currency-modal').classList.remove('show'); };
+
+  const savedThemeMode = localStorage.getItem('smartcalc_v1_theme_mode');
+  // Check if saved theme is OLED, otherwise standard logic
+  if(savedThemeMode) document.body.dataset.theme = savedThemeMode;
+
+  const savedThemeColor = localStorage.getItem('smartcalc_v1_theme_color');
+  if(savedThemeColor) { 
+      $('theme-color').value = savedThemeColor; 
+      updateThemeColors(savedThemeColor); 
+  } else updateThemeColors('mono');
+
+  renderUnits();
+  
+  const lastTab = localStorage.getItem('smartcalc_v1_last_tab');
+  if(lastTab) {
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${lastTab}"]`); if(tabBtn) tabBtn.click();
+      const lastPanel = localStorage.getItem('smartcalc_v1_last_panel');
+      if(lastPanel) { const panelBtn = document.querySelector(`.chip-btn[data-panel="${lastPanel}"]`); if(panelBtn) panelBtn.click(); }
+  }
+</script>
+</html>
